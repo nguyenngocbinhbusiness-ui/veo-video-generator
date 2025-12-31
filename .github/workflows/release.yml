@@ -133,6 +133,11 @@ jobs:
             npm run build
           fi
         shell: bash
+
+      - name: Package Electron for ${{ matrix.platform }}
+        run: |
+          npx electron-builder --${{ matrix.platform }} --publish never
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
