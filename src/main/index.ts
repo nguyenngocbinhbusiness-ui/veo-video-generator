@@ -1,9 +1,8 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
-import Store from 'electron-store';
 
-const store = new Store();
 let mainWindow: BrowserWindow | null = null;
+let downloadFolder: string = '';
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -17,6 +16,8 @@ function createWindow() {
         titleBarStyle: 'hiddenInset',
         backgroundColor: '#0f172a',
     });
+
+    downloadFolder = app.getPath('downloads');
 
     if (process.env.NODE_ENV === 'development') {
         mainWindow.loadURL('http://localhost:5173');
@@ -41,8 +42,7 @@ app.on('activate', () => {
 });
 
 // IPC Handlers
-ipcMain.handle('youtube:download', async (event, { id, url }) => {
-    const downloadPath = store.get('downloadFolder', app.getPath('downloads')) as string;
+ipcMain.handle('youtube:download', async (_event, { id, url }) => {
     try {
         const timer = setInterval(() => {
             mainWindow?.webContents.send('youtube:progress', {
@@ -55,7 +55,7 @@ ipcMain.handle('youtube:download', async (event, { id, url }) => {
         clearInterval(timer);
         mainWindow?.webContents.send('youtube:complete', {
             id,
-            filePath: path.join(downloadPath, 'video.mp4'),
+            filePath: path.join(downloadFolder, 'video.mp4'),
         });
         return { success: true };
     } catch (error) {
@@ -63,11 +63,11 @@ ipcMain.handle('youtube:download', async (event, { id, url }) => {
     }
 });
 
-ipcMain.handle('video:download', async (event, filePath) => {
+ipcMain.handle('video:download', async (_event, filePath) => {
     shell.showItemInFolder(filePath);
 });
 
-ipcMain.handle('ai:sendMessage', async (event, { messages }) => {
+ipcMain.handle('ai:sendMessage', async (_event, { messages }) => {
     const mockResponse = "This is a response from the local LLM.";
     for (const char of mockResponse) {
         mainWindow?.webContents.send('ai:stream-chunk', char);

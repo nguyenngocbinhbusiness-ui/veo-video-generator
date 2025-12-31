@@ -1,35 +1,16 @@
 {
-    "compilerOptions": {
-        "composite": true,
-        "skipLibCheck": true,
-<<<<<<< HEAD
-        "module": "CommonJS",
-        "moduleResolution": "node",
-        "allowSyntheticDefaultImports": true,
-        "strict": true,
-        "outDir": "./dist",
-        "rootDir": "src"
-    },
-    "include": [
-        "src/main/**/*",
-        "src/shared/**/*"
-    ]
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "outDir": "dist/main",
+    "rootDir": "src/main"
+  },
+  "include": [
+    "vite.config.ts",
+    "src/main/**/*"
+  ]
 }
-=======
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "allowSyntheticDefaultImports": true,
-        "strict": true,
-         "baseUrl": ".",
-        "paths": {
-             "@shared/*": [
-                "src/shared/*"
-            ]
-        }
-    },
-    "include": [
-        "vite.config.ts",
-        "src/main/**/*"
-    ]
-}
->>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04
