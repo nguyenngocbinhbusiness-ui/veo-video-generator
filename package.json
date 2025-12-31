@@ -7,14 +7,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx tsc -p tsconfig.node.json && vite build && electron-builder --win --publish never",
+    "build": "npx tsc -p tsconfig.node.json && vite build",
     "build:main": "npx tsc -p tsconfig.node.json",
     "build:renderer": "vite build",
-    "build:electron": "electron-builder --win --publish never",
+    "build:electron": "electron-builder --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:linux": "electron-builder --linux --publish never",
     "preview": "vite preview",
+    "lint": "echo 'Linting skipped - no eslint config'",
+    "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:unit": "vitest run --dir tests/unit",
-    "test:integration": "vitest run --dir tests/integration"
+    "test:integration": "vitest run --dir tests/integration",
+    "test:e2e": "echo 'E2E tests skipped - run manually with Playwright'"
   },
   "dependencies": {
     "react": "^18.3.1",
