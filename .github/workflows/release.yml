@@ -73,7 +73,7 @@ jobs:
             exit 1
           fi
 
-      # ===== ELECTRON PACKAGING =====
+      # ===== ELECTRON PACKAGING (NSIS + Portable + MSI) =====
       - name: Package Electron application
         run: npx electron-builder --win --publish never
         env:
@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           echo "📦 Build artifacts:"
-          find release -type f -name "*.exe" -o -name "*.yml" -o -name "*.blockmap" 2>/dev/null || echo "No artifacts found"
+          find release -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.zip" -o -name "*.yml" \) 2>/dev/null || echo "No artifacts found"
 
       # ===== GITHUB RELEASE =====
       - name: Create GitHub Release
@@ -94,6 +94,8 @@ jobs:
           target_commitish: ${{ github.sha }}
           files: |
             release/**/*.exe
+            release/**/*.msi
+            release/**/*.zip
             release/**/*.dmg
             release/**/*.AppImage
             release/**/*.yml
