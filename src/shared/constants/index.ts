@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Application-wide constants
  * Following coding.md - no hardcoding, all configurable values here
  */
@@ -70,3 +71,36 @@ export const STATUS_ICONS = {
     failed: '❌',
     cancelled: '🚫',
 } as const;
+=======
+ * Application Constants
+ */
+
+export const FLOW_URLS = {
+    BASE: 'https://labs.google/fx/flow',
+    LOGIN: 'https://accounts.google.com',
+};
+
+export const FLOW_SELECTORS = {
+    signInButton: 'button[data-label="Sign in"]',
+    userAvatar: 'img.gb_Ac',
+    promptInput: 'textarea[aria-label="Prompt"]',
+    generateButton: 'button[aria-label="Generate"]',
+    errorMessage: '.error-message',
+    videoPreview: 'video',
+    loadingSpinner: '.spinner',
+    downloadButton: 'button[aria-label="Download"]',
+};
+
+export const TIMEOUTS = {
+    pageLoad: 30000,
+    elementVisible: 10000,
+    videoGeneration: 300000, // 5 mins
+    downloadComplete: 60000,
+};
+
+export const DEFAULT_SETTINGS = {
+    maxConcurrent: 2,
+    retryAttempts: 3,
+    downloadFolder: 'downloads',
+};
+>>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04

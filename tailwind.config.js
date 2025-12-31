@@ -4,6 +4,7 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
+<<<<<<< HEAD
     darkMode: 'class',
     theme: {
         extend: {
@@ -77,3 +78,35 @@ export default {
     plugins: [],
 }
 
+=======
+    theme: {
+        extend: {
+            colors: {
+                primary: {
+                    50: '#f0f9ff',
+                    100: '#e0f2fe',
+                    200: '#bae6fd',
+                    300: '#7dd3fc',
+                    400: '#38bdf8',
+                    500: '#0ea5e9',
+                    600: '#0284c7',
+                    700: '#0369a1',
+                    800: '#075985',
+                    900: '#0c4a6e',
+                },
+                accent: {
+                    500: '#8b5cf6', // Violet
+                }
+            },
+            fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+                mono: ['JetBrains Mono', 'monospace'],
+            },
+        },
+    },
+    plugins: [require('daisyui')],
+    daisyui: {
+        themes: ["dark"],
+    },
+}
+>>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04

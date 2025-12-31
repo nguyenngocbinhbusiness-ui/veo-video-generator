@@ -1,8 +1,14 @@
 /**
+<<<<<<< HEAD
  * Shared TypeScript types for Veo Video Generator
  */
 
 // Cookie structure from browser export
+=======
+ * Shared Type Definitions
+ */
+
+>>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04
 export interface Cookie {
     name: string;
     value: string;
@@ -11,6 +17,7 @@ export interface Cookie {
     expires: number;
     httpOnly: boolean;
     secure: boolean;
+<<<<<<< HEAD
     sameSite?: 'Strict' | 'Lax' | 'None';
 }
 
@@ -23,6 +30,13 @@ export type GenerationStatus =
     | 'cancelled';
 
 // Single video generation item
+=======
+    sameSite?: string;
+}
+
+export type GenerationStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
+
+>>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04
 export interface GenerationItem {
     id: string;
     prompt: string;
@@ -33,9 +47,21 @@ export interface GenerationItem {
     videoPath?: string;
     error?: string;
     retryCount: number;
+<<<<<<< HEAD
 }
 
 // Queue status summary
+=======
+    settings?: GenerationOptions;
+}
+
+export interface GenerationOptions {
+    width?: number;
+    height?: number;
+    duration?: number;
+}
+
+>>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04
 export interface QueueStatus {
     total: number;
     queued: number;
@@ -46,6 +72,7 @@ export interface QueueStatus {
     isPaused: boolean;
 }
 
+<<<<<<< HEAD
 // Video generation options
 export interface GenerationOptions {
     aspectRatio?: '16:9' | '9:16' | '1:1';
@@ -54,10 +81,13 @@ export interface GenerationOptions {
 }
 
 // App settings
+=======
+>>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04
 export interface AppSettings {
     downloadFolder: string;
     maxConcurrent: number;
     retryAttempts: number;
+<<<<<<< HEAD
     generationTimeout: number;
     showBrowser: boolean;
 }
@@ -108,3 +138,25 @@ export interface QueueEvents {
     itemComplete: (item: GenerationItem) => void;
     itemFail: (item: GenerationItem, error: string) => void;
 }
+=======
+    flowUrl: string;
+}
+
+export const IPC_CHANNELS = {
+    // AI Chat
+    AI_SEND_MESSAGE: 'ai:sendMessage',
+    AI_STREAM_CHUNK: 'ai:stream-chunk',
+    AI_STREAM_END: 'ai:stream-end',
+    AI_ERROR: 'ai:error',
+
+    // Youtube
+    YOUTUBE_DOWNLOAD: 'youtube:download',
+    YOUTUBE_PROGRESS: 'youtube:progress',
+    YOUTUBE_COMPLETE: 'youtube:complete',
+    YOUTUBE_ERROR: 'youtube:error',
+    YOUTUBE_CANCEL: 'youtube:cancel',
+
+    // System
+    OPEN_FOLDER: 'video:download',
+};
+>>>>>>> 7e166733f58fefd5483c3fe5562b91014d982f04
