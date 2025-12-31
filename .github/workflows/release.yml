@@ -39,16 +39,53 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build application
-        run: npm run build
+      # ===== LOCAL BUILD VERIFICATION =====
+      - name: Compile TypeScript (Main Process)
+        run: npx tsc -p tsconfig.node.json
+        
+      - name: Verify main process build
+        shell: bash
+        run: |
+          if [ -f "dist/main/index.js" ]; then
+            echo "✅ Main process compiled successfully"
+            ls -la dist/main/
+          else
+            echo "❌ Main process compilation failed"
+            exit 1
+          fi
+
+      - name: Build Vite (Renderer)
+        run: npx vite build
+
+      - name: Verify renderer build
+        shell: bash
+        run: |
+          if [ -f "dist/renderer/index.html" ]; then
+            echo "✅ Renderer built successfully"
+            ls -la dist/renderer/
+          else
+            echo "❌ Renderer build failed"
+            exit 1
+          fi
+
+      # ===== ELECTRON PACKAGING =====
+      - name: Package Electron application
+        run: npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
 
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "📦 Build artifacts:"
+          find release -type f -name "*.exe" -o -name "*.yml" -o -name "*.blockmap" 2>/dev/null || echo "No artifacts found"
+
+      # ===== GITHUB RELEASE =====
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
