@@ -1,0 +1,276 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type override'
+        required: false
+        type: choice
+        options:
+          - auto
+          - desktop
+          - web
+          - library
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================
+  # DETECT PROJECT TYPE
+  # ============================================
+  detect:
+    name: Detect Project Type
+    runs-on: ubuntu-latest
+    outputs:
+      project_type: ${{ steps.detect.outputs.type }}
+      project_dir: ${{ steps.detect.outputs.dir }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Detect project type and directory
+        id: detect
+        run: |
+          # Determine project directory
+          if [ -f "project/package.json" ]; then
+            echo "dir=project" >> $GITHUB_OUTPUT
+            PKG_PATH="project/package.json"
+          else
+            echo "dir=." >> $GITHUB_OUTPUT
+            PKG_PATH="package.json"
+          fi
+          
+          # Manual override from workflow_dispatch
+          if [ "${{ github.event.inputs.release_type }}" != "" ] && [ "${{ github.event.inputs.release_type }}" != "auto" ]; then
+            echo "type=${{ github.event.inputs.release_type }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Auto-detect from package.json
+          if grep -q "electron" "$PKG_PATH" 2>/dev/null; then
+            echo "type=desktop" >> $GITHUB_OUTPUT
+          elif grep -q '"main".*"dist' "$PKG_PATH" 2>/dev/null || grep -q '"publishConfig"' "$PKG_PATH" 2>/dev/null; then
+            echo "type=library" >> $GITHUB_OUTPUT
+          else
+            echo "type=web" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+  # ============================================
+  # RUN TESTS
+  # ============================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: detect
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ needs.detect.outputs.project_dir }}/package-lock.json'
+      
+      - name: Install and test
+        working-directory: ${{ needs.detect.outputs.project_dir }}
+        run: |
+          npm ci
+          npm run test:unit --if-present -- --reporter=verbose
+          npm run test:integration --if-present -- --reporter=verbose
+
+  # ============================================
+  # DESKTOP APP RELEASE (Electron)
+  # ============================================
+  release-desktop:
+    name: Release Desktop App
+    if: needs.detect.outputs.project_type == 'desktop'
+    needs: [detect, test]
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            artifact: '*.exe'
+          - os: macos-latest
+            platform: mac
+            artifact: '*.dmg'
+          - os: ubuntu-latest
+            platform: linux
+            artifact: '*.AppImage'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ needs.detect.outputs.project_dir }}/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ${{ needs.detect.outputs.project_dir }}
+        run: npm ci
+      
+      - name: Build Electron app
+        working-directory: ${{ needs.detect.outputs.project_dir }}
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: ${{ needs.detect.outputs.project_dir }}/release/${{ matrix.artifact }}
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ============================================
+  # WEB APP RELEASE (Deploy to hosting)
+  # ============================================
+  release-web:
+    name: Release Web App
+    if: needs.detect.outputs.project_type == 'web'
+    needs: [detect, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ needs.detect.outputs.project_dir }}/package-lock.json'
+      
+      - name: Install and build
+        working-directory: ${{ needs.detect.outputs.project_dir }}
+        run: |
+          npm ci
+          npm run build
+      
+      # Option 1: Deploy to GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        continue-on-error: true
+      
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ needs.detect.outputs.project_dir }}/dist
+        continue-on-error: true
+      
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      
+      # Option 2: Deploy to Vercel (if configured)
+      - name: Deploy to Vercel
+        if: env.VERCEL_TOKEN != ''
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        continue-on-error: true
+      
+      # Upload build as artifact for manual deployment
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: ${{ needs.detect.outputs.project_dir }}/dist
+          retention-days: 30
+
+  # ============================================
+  # LIBRARY RELEASE (Publish to npm)
+  # ============================================
+  release-library:
+    name: Release Library
+    if: needs.detect.outputs.project_type == 'library'
+    needs: [detect, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ needs.detect.outputs.project_dir }}/package-lock.json'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install and build
+        working-directory: ${{ needs.detect.outputs.project_dir }}
+        run: |
+          npm ci
+          npm run build --if-present
+      
+      - name: Publish to npm
+        working-directory: ${{ needs.detect.outputs.project_dir }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
+      
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: |
+            ${{ needs.detect.outputs.project_dir }}/dist
+            ${{ needs.detect.outputs.project_dir }}/package.json
+          retention-days: 30
+
+  # ============================================
+  # CREATE GITHUB RELEASE
+  # ============================================
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [detect, release-desktop, release-web, release-library]
+    if: always() && needs.detect.result == 'success' && (needs.release-desktop.result == 'success' || needs.release-web.result == 'success' || needs.release-library.result == 'success' || needs.release-desktop.result == 'skipped' || needs.release-web.result == 'skipped' || needs.release-library.result == 'skipped')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+        continue-on-error: true
+      
+      - name: List artifacts
+        run: find artifacts -type f 2>/dev/null || echo "No artifacts found"
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+          body: |
+            ## Release v${{ needs.detect.outputs.version }}
+            
+            **Project Type:** ${{ needs.detect.outputs.project_type }}
+            
+            See changelog below for details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
